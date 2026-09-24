@@ -1,7 +1,7 @@
 [project]
   name = "MemDigger"
   version = "0.1.0"
-  edition = "cpp20"
+  edition = "cpp17"
 
 [binaries]
 
