@@ -118,3 +118,77 @@ private:
   std::atomic<unsigned> waiting_;
   std::atomic<unsigned> generation_;
 };
+
+std::vector<size_t> generate_topology_aware_sizes() {
+  size_t l1d = 0, l2 = 0, l3 = 0, total_ram_kb = 0;
+
+#ifdef _WIN32
+  DWORD bufferSize = 0;
+  GetLogicalProcessorInformation(nullptr, &bufferSize);
+  std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer(
+      bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+  GetLogicalProcessorInformation(buffer.data(), &bufferSize);
+
+  for (const auto &info : buffer) {
+    if (info.Relationship == RelationCache) {
+      if (info.Cache.Level == 1 &&
+          (info.Cache.Type == CacheData || info.Cache.Type == CacheUnified) &&
+          l1d == 0) {
+        l1d = info.Cache.Size / 1024;
+      } else if (info.Cache.Level == 2 && l2 == 0) {
+        l2 = info.Cache.Size / 1024;
+      } else if (info.Cache.Level == 3 && l3 == 0) {
+        l3 = info.Cache.Size / 1024;
+      }
+    }
+  }
+
+  MEMORYSTATUSEX memInfo;
+  memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+  GlobalMemoryStatusEx(&memInfo);
+  total_ram_kb = memInfo.ullTotalPhys / 1024;
+
+#elif defined(__linux__)
+  detect_linux_caches(l1d, l2, l3);
+
+  struct sysinfo info;
+  sysinfo(&info);
+  total_ram_kb = (info.totalram * info.mem_unit) / 1024;
+#endif
+
+  std::cout << "Detected Topology:\n"
+            << "L1d Cache: " << l1d << " KB\n"
+            << "L2 Cache:  " << l2 << " KB\n"
+            << "L3 Cache:  " << l3 << " KB\n"
+            << "Total RAM: " << total_ram_kb / (1024 * 1024) << " GB\n\n";
+
+  std::vector<size_t> sizes_kb;
+
+  if (l1d > 0) {
+    sizes_kb.push_back(l1d / 2);
+    sizes_kb.push_back(l1d);
+    sizes_kb.push_back(l1d * 2);
+  }
+  if (l2 > 0) {
+    sizes_kb.push_back(l2 / 2);
+    sizes_kb.push_back(l2);
+    sizes_kb.push_back(l2 * 2);
+  }
+  if (l3 > 0) {
+    sizes_kb.push_back(l3 / 2);
+    sizes_kb.push_back(l3);
+    sizes_kb.push_back(l3 * 2);
+  }
+
+  if (l1d == 0 && l2 == 0 && l3 == 0) {
+    sizes_kb = {16, 32, 128, 256, 1024, 4096, 8192, 32768};
+  }
+
+  size_t safe_ram_test = std::min<size_t>(256 * 1024, total_ram_kb / 10);
+  sizes_kb.push_back(safe_ram_test);
+
+  std::sort(sizes_kb.begin(), sizes_kb.end());
+  sizes_kb.erase(std::unique(sizes_kb.begin(), sizes_kb.end()), sizes_kb.end());
+
+  return sizes_kb;
+}
