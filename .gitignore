@@ -1,0 +1,5 @@
+build/
+.engine/
+.redline/
+*.o
+*.out

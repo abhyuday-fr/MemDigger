@@ -1,0 +1,27 @@
+[project]
+  name = "MemDigger"
+  version = "0.1.0"
+  edition = "cpp20"
+
+[binaries]
+
+[dependencies]
+
+[profiles]
+  [profiles.dev]
+    optimization = 0
+    debug_symbols = true
+    sanitizers = ["address", "undefined"]
+    gdb_on_crash = true
+    lto = false
+  [profiles.release]
+    optimization = 3
+    debug_symbols = false
+    sanitizers = []
+    gdb_on_crash = false
+    lto = true
+
+[tools]
+  gdb = true
+  valgrind = true
+  perf = true
