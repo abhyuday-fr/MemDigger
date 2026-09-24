@@ -3,3 +3,4 @@ build/
 .redline/
 *.o
 *.out
+data/
