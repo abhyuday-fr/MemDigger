@@ -7,6 +7,8 @@
  * used by a python script to plot the graphs.
  */
 
+#include <filesystem> // for data dir creation
+#include <fstream>
 #include <iostream>
 #include <thread> // for hardware_concurrency
 
@@ -17,7 +19,9 @@ int main() {
 
   std::vector<size_t> custom_test_sizes = generate_topology_aware_sizes();
 
-  std::ofstream csv("memory_results.csv");
+  std::filesystem::create_directory("data");
+
+  std::ofstream csv("data/memory_results.csv");
   if (!csv.is_open()) {
     std::cerr << "Failed to open memory_results.csv for writing.\n";
     return 1;
