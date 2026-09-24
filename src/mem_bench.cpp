@@ -59,7 +59,7 @@ static bool read_cache_index(int index, int &level_out, size_t &size_kb_out,
   return true;
 }
 
-static void detect_linux_caches(size_t &l1d, size_t &l2, size_t l3) {
+static void detect_linux_caches(size_t &l1d, size_t &l2, size_t &l3) {
   l1d = l2 = l3 = 0;
   for (int i = 0; i < 8; i++) {
     int level = 0;
