@@ -57,4 +57,25 @@ static bool read_cache_index(int index, int &level_out, size_t &size_kb_out,
 
   return true;
 }
+
+static void detect_linux_caches(size_t &l1d, size_t &l2, size_t l3) {
+  l1d = l2 = l3 = 0;
+  for (int i = 0; i < 8; i++) {
+    int level = 0;
+    size_t size_kb = 0;
+    std::string type;
+    if (!read_cache_index(i, level, size_kb, type)) {
+      continue;
+    }
+    if (type == "Instruction") {
+      continue;
+    }
+    if (level == 1 && l1d == 0)
+      l1d = size_kb;
+    else if (level == 2 && l2 == 0)
+      l2 = size_kb;
+    else if (level == 3 && l3 == 0)
+      l3 = size_kb;
+  }
+}
 #endif
