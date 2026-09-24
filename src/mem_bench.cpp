@@ -241,3 +241,67 @@ void run_latency_benchmark(std::ofstream &csv_file,
     csv_file << "Latency," << size_kb << "," << best_latency_per_access << "\n";
   }
 }
+
+void run_bandwidth_benchmark(std::ofstream &csv_file, unsigned num_threads) {
+  if (num_threads == 0)
+    num_threads = 1;
+
+  const size_t per_thread_bytes = 256 * 1024 * 1024; // 256 MB per thread
+  const size_t per_thread_elems = per_thread_bytes / sizeof(uint64_t);
+
+  SpinBarrier start_barrier(num_threads);
+  std::vector<std::thread> threads;
+  std::vector<double> thread_seconds(num_threads, 0.0);
+  std::vector<uint64_t> thread_sums(num_threads, 0);
+
+  std::atomic<bool> begin_flag{false};
+
+  for (unsigned t = 0; t < num_threads; ++t) {
+    threads.emplace_back([&, t]() {
+      pin_thread_to_core(t);
+
+      // allocate and touch this thread's private buffer before the timed region
+      std::vector<uint64_t> buffer(per_thread_elems, 1);
+
+      start_barrier
+          .arrive_and_wait(); // ensure all threads finished allocating/touching
+
+      while (!begin_flag.load(std::memory_order_acquire)) {
+        std::this_thread::yield(); // wait for the launcher's go-signal
+      }
+
+      auto start = std::chrono::steady_clock::now();
+      uint64_t sum = 0;
+      for (size_t i = 0; i < buffer.size(); ++i) {
+        sum += buffer[i];
+      }
+      auto end = std::chrono::steady_clock::now();
+
+      thread_sums[t] = sum;
+      thread_seconds[t] = std::chrono::duration<double>(end - start).count();
+    });
+  }
+
+  // give threads a moment to reach the barrier then release them together
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  begin_flag.store(true, std::memory_order_release);
+
+  for (auto &th : threads)
+    th.join();
+
+  // wall clock time is the max across threads (the slowest one bounds the
+  // parallel region)
+  double wall_seconds =
+      *std::max_element(thread_seconds.begin(), thread_seconds.end());
+  size_t total_bytes = per_thread_bytes * num_threads;
+
+  double bandwidth_gbps =
+      (total_bytes / (1024.0 * 1024.0 * 1024.0)) / wall_seconds;
+  csv_file << "Bandwidth," << (per_thread_bytes / 1024) * num_threads << ","
+           << bandwidth_gbps << "\n";
+
+  // prevent dead code elimination of each thread's sum
+  volatile uint64_t sink = 0;
+  for (auto s : thread_sums)
+    sink += s;
+}
