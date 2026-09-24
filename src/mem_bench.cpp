@@ -11,6 +11,7 @@
 #include <limits>
 #include <numeric>
 #include <random>
+#include <sched.h>
 #include <string>
 #include <thread>
 
@@ -79,3 +80,17 @@ static void detect_linux_caches(size_t &l1d, size_t &l2, size_t l3) {
   }
 }
 #endif
+
+// cross-platform pin-current-thread-to-logical-processor helper
+static void pin_thread_to_core(unsigned core_index) {
+#ifdef _WIN32
+  SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)1 << core_index);
+#elif defined(__linux__)
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(core_index, &cpuset);
+  pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+#else
+  (void)core_index; // no-op on unspoorted platforms
+#endif
+}
