@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # load the benchmark results
 try:
-    df = pd.read_csv("memory_results.csv")
+    df = pd.read_csv("data/memory_results.csv")
 except FileNotFoundError:
     print("Error: memory_results.csv not found. Run the C++ benchmark first.")
     exit(1)
@@ -55,7 +55,7 @@ for index, row in latency_data.iterrows():
     )
 
 # Save and display
-output_file = "memory_latency_curve.png"
+output_file = "data/memory_latency_curve.png"
 plt.savefig(output_file, dpi=300, bbox_inches="tight")
 print(f"Plot saved successfully as '{output_file}'.")
 
