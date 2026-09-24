@@ -192,3 +192,52 @@ std::vector<size_t> generate_topology_aware_sizes() {
 
   return sizes_kb;
 }
+
+void run_latency_benchmark(std::ofstream &csv_file,
+                           const std::vector<size_t> &sizes_kb) {
+  for (size_t size_kb : sizes_kb) {
+    size_t num_nodes = (size_kb * 1024) / sizeof(Node);
+    if (num_nodes < 2)
+      continue;
+
+    std::vector<Node> buffer(num_nodes);
+    std::vector<size_t> indices(num_nodes);
+    std::iota(indices.begin(), indices.end(), 0);
+    std::mt19937 gen(42);
+    std::shuffle(indices.begin(), indices.end(), gen);
+
+    for (size_t i = 0; i < num_nodes - 1; ++i) {
+      buffer[indices[i]].next = &buffer[indices[i + 1]];
+    }
+    buffer[indices.back()].next = nullptr;
+
+    Node *head = &buffer[indices[0]];
+
+    Node *current = head;
+    for (size_t i = 0; i < num_nodes && current; ++i) {
+      current = current->next;
+    }
+
+    constexpr int kTrials = 5;
+    double best_latency_per_access = std::numeric_limits<double>::max();
+
+    for (int t = 0; t < kTrials; ++t) {
+      current = head;
+      size_t count = 0;
+
+      auto start = std::chrono::steady_clock::now();
+      while (current) {
+        current = current->next;
+        count++;
+      }
+      auto end = std::chrono::steady_clock::now();
+
+      std::chrono::duration<double, std::nano> time_ns = end - start;
+      double latency_per_access = time_ns.count() / count;
+      best_latency_per_access =
+          std::min(best_latency_per_access, latency_per_access);
+    }
+
+    csv_file << "Latency," << size_kb << "," << best_latency_per_access << "\n";
+  }
+}
