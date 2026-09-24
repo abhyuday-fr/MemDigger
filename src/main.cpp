@@ -98,6 +98,16 @@ void run_bandwidth_benchmark(std::ofstream &csv_file) {
 }
 
 int main() {
-  std::cout << "Hello, world!" << std::endl;
+  std::ofstream csv("memory_results.csv");
+  csv << "Metric,Size_KB,Result\n";
+
+  std::cout << "Running Latency Benchmark (Pointer Chasing)...\n";
+  run_latency_benchmark(csv);
+
+  std::cout << "Running Bandwidth Benchmark (Sequential Read)...\n";
+  run_bandwidth_benchmark(csv);
+
+  csv.close();
+  std::cout << "Done. Results saved to memory_results.csv\n";
   return 0;
 }
