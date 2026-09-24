@@ -94,3 +94,27 @@ static void pin_thread_to_core(unsigned core_index) {
   (void)core_index; // no-op on unspoorted platforms
 #endif
 }
+
+// simple spin-wait barrier so all threads begin their timed region together
+class SpinBarrier {
+public:
+  explicit SpinBarrier(unsigned count)
+      : total_(count), waiting_(0), generation_(0) {}
+
+  void arrive_and_wait() {
+    unsigned gen = generation_.load(std::memory_order_acquire);
+    if (waiting_.fetch_add(1, std::memory_order_acq_rel) + 1 == total_) {
+      waiting_.store(0, std::memory_order_release);
+      generation_.fetch_add(1, std::memory_order_release);
+    } else {
+      while (generation_.load(std::memory_order_acquire) == gen) {
+        std::this_thread::yield();
+      }
+    }
+  }
+
+private:
+  unsigned total_;
+  std::atomic<unsigned> waiting_;
+  std::atomic<unsigned> generation_;
+};
