@@ -21,6 +21,12 @@ I used the custom build system I made for my C++ projects, check out [Redline](h
 - Build System (Optional): CMake 3.10 or higher.
 - Python: Python 3 with pandas and matplotlib installed for visualization.
 
+## Example
+
+This is the plot for memory read latency on (close to) idle machine
+
+![plot](./assets/memory_latency_curve.png)
+
 ## Build & Run Instructions
 
 ### Option 1: CMake
