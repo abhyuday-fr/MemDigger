@@ -125,3 +125,15 @@ target_link_libraries(MemDigger PRIVATE Threads::Threads)
 ```sh
 redline run --release
 ```
+
+7. **(Basic usage was completed in previous step but I wanted to use perf and flamegraphs, the real thing the redline is built for i.e., integrate tools that system programmers use)**
+
+```sh
+redline run --release -perf=detailed --flame
+```
+
+8. perf data was written automatically in `build/relase/perf.data` and flamegraph was drawn in `build/release/flamegraph.svg`.
+
+9. I can't commit the build/ dir here but, for reference, this is how the flamegraph looked for me: (you can just open the svg in your browser for interaction).
+
+![flamegraph](./assets/flamegraph.svg)
