@@ -25,7 +25,7 @@ I used the custom build system I made for my C++ projects, check out [Redline](h
 
 This is the plot for memory read latency on (close to) idle machine
 
-![plot](./assets/memory_latency_curve.png)
+![plot](./assets/memory_benchmark_dashboard.png)
 
 ## Build & Run Instructions
 
